@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Deploys Suricata as part of the Nubeva TLS Decrypt & Open Source Tools
+Description: Deploys Suricata as part of the Nubeva TLS Decrypt & Open Source Tools. (qs-1qsdipn6k)
 Parameters:
   APIKey:
     Description: "The Token for your Prisms account"
@@ -460,6 +460,8 @@ Resources:
               command: "echo 'suricata -D -c /etc/suricata/suricata.yaml -i nurx0 --user suricata --group suricata' >> /etc/rc.local"
             06_startSuricata:
               command: "suricata -D -c /etc/suricata/suricata.yaml -i nurx0 --user suricata --group suricata"
+            07_addEC2todockergroup:
+              command: "usermod -aG docker ec2-user"
 
 
 

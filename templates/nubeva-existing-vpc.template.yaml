@@ -1,6 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Deploys Nubeva TLS Decrypt & Open Source Tools (qs-1qg4tqp9n)
 Metadata:
+  QuickStartDocumentation:
+    EntrypointName: "Launch into an existing VPC"
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:
@@ -23,6 +25,7 @@ Metadata:
       - ClientInstall
       - ToolAdmin
       - ToolPassword
+      - AddESRole
     - Label:
         default: Auto Scaling group configuration
       Parameters:
@@ -49,6 +52,8 @@ Metadata:
         default: Install Zeek ASG
       ClientInstall:
         default: Install TLS generation clients
+      AddESRole:
+        default: Install Elasticsearch service-linked role
       ToolAdmin:
         default: Administrator name
       ToolPassword:
@@ -123,6 +128,13 @@ Parameters:
     - false
     Description: Choose to install TLS generation clients.
     Type: String
+  AddESRole:
+    Default: false
+    AllowedValues:
+    - true
+    - false
+    Description: Choose to install Elasticsearch service-linked role.
+    Type: String
   KeyPairName:
     Description: Name of an existing key pair, which allows you
       to securely connect to your instance after it launches.
@@ -136,7 +148,7 @@ Parameters:
     AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
     ConstraintDescription: must begin with a letter and contain only 4-16 alphanumeric characters.
   ToolPassword:
-    Description: must contain only 8-32 alphanumeric characters.
+    Description: Must contain only 8-32 alphanumeric characters.
     NoEcho: true
     Type: String
     MinLength: 8
@@ -207,7 +219,7 @@ Parameters:
     Type: Number
   MaximumNodes:
     Default: 6
-    Description: Maximum number of EC2 instance nodes in the each Tool Autoscaling Group.
+    Description: Maximum number of EC2 instance nodes in the tool Auto Scaling group.
     Type: String
   APIKey:
     Description: Token for your Nubeva account.
@@ -248,14 +260,25 @@ Conditions:
   ClientInstallTrue: !Equals
     - !Ref ClientInstall
     - 'true'
+  ESRoleInstallTrue: !Equals
+    - !Ref AddESRole
+    - 'true'
+
 
 
 Resources:
+  BaseESSLR:
+    Condition: ESRoleInstallTrue
+    Type: AWS::IAM::ServiceLinkedRole
+    Properties:
+      AWSServiceName: es.amazonaws.com
+      Description: Default ES Service Linked IAM Role
+
   NtopStack:
     Condition: NtopInstallTrue
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: 
+      TemplateURL:
         !Sub
           - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/nubeva-ntop.template.yaml'
           - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
@@ -277,7 +300,7 @@ Resources:
     Condition: MolochInstallTrue
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: 
+      TemplateURL:
         !Sub
           - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/nubeva-moloch.template.yaml'
           - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
@@ -299,7 +322,7 @@ Resources:
     Condition: WiresharkInstallTrue
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: 
+      TemplateURL:
         !Sub
           - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/nubeva-wireshark.template.yaml'
           - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
@@ -315,13 +338,13 @@ Resources:
         VPCID: !Ref VPCID
         APIKey: !Ref APIKey
         ToolAdmin: !Ref ToolAdmin
-        #ToolPassword: !Ref ToolPassword
+        ToolPassword: !Ref ToolPassword
         VPCCIDR: !Ref VPCCIDR
   SuricataStack:
     Condition: SuricataInstallTrue
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: 
+      TemplateURL:
         !Sub
           - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/nubeva-suricata.template.yaml'
           - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
@@ -341,7 +364,7 @@ Resources:
     Condition: ZeekInstallTrue
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: 
+      TemplateURL:
         !Sub
           - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/nubeva-zeek.template.yaml'
           - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
@@ -361,7 +384,7 @@ Resources:
     Condition: ClientInstallTrue
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: 
+      TemplateURL:
         !Sub
           - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/nubeva-tlsgen.template.yaml'
           - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]

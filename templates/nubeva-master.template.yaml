@@ -1,6 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Deploys Nubeva TLS Decrypt & Open-Source Tools in a new VPC.
+Description: Deploys Nubeva TLS Decrypt & Open-Source Tools in a new VPC (qs-1qsdipn35).
 Metadata:
+  QuickStartDocumentation:
+    EntrypointName: "Launch into a new VPC"
   AWS::CloudFormation::Interface:
     ParameterGroups:
     - Label:
@@ -27,6 +29,7 @@ Metadata:
       - ClientInstall
       - ToolAdmin
       - ToolPassword
+      - AddESRole
     - Label:
         default: Auto Scaling group configuration
       Parameters:
@@ -53,6 +56,8 @@ Metadata:
         default: Install Zeek ASG
       ClientInstall:
         default: Install TLS generation clients
+      AddESRole:
+        default: Install Elasticsearch Service Linked Role
       ToolAdmin:
         default: Administrator name
       ToolPassword:
@@ -134,6 +139,13 @@ Parameters:
     - false
     Description: Choose to install TLS generation clients.
     Type: String
+  AddESRole:
+    Default: false
+    AllowedValues:
+    - true
+    - false
+    Description: Choose to install Elasticsearch Service Linked Role.
+    Type: String
   ToolAdmin:
     Description: User name associated with the administrator account for the created tools.
     Type: String
@@ -152,11 +164,11 @@ Parameters:
     ConstraintDescription: must contain only 8-32 alphanumeric characters
   BastionAMIOS:
     AllowedValues:
-    - Amazon-Linux-HVM
-    - CentOS-7-HVM
-    - Ubuntu-Server-14.04-LTS-HVM
-    - Ubuntu-Server-16.04-LTS-HVM
-    Default: Amazon-Linux-HVM
+      - Amazon-Linux2-HVM
+      - CentOS-7-HVM
+      - Ubuntu-Server-18.04-LTS-HVM
+      - SUSE-SLES-15-HVM
+    Default: Amazon-Linux2-HVM
     Description: Linux distribution for the Amazon Machine Image (AMI) to be used for the bastion instances.
     Type: String
   BastionInstanceType:
@@ -342,7 +354,7 @@ Resources:
   NubevaStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: 
+      TemplateURL:
         !Sub
           - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/nubeva-existing-vpc.template.yaml'
           - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
@@ -369,3 +381,4 @@ Resources:
         ToolAdmin: !Ref ToolAdmin
         ToolPassword: !Ref ToolPassword
         ClientInstall: !Ref ClientInstall
+        AddESRole: !Ref AddESRole
